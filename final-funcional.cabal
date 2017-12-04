@@ -30,7 +30,7 @@ executable final-funcional-exe
   build-depends:       base
                        , final-funcional
                        , distributed-process
-                       , network-transport-tcp
+                       , distributed-process-simplelocalnet
   default-language:    Haskell2010
 
 test-suite final-funcional-test
