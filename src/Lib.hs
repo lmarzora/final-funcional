@@ -3,6 +3,7 @@ module Lib
     ) where
 
 import Data.Word
+import Data.Maybe
 
 someFunc :: IO ()
 someFunc = putStrLn "someFunc"
@@ -13,12 +14,13 @@ type Vector3 = (Double, Double, Double)
 data Screen = Screen {width::Word, height::Word}
 data Ray = Ray {origin::Vector3, direction::Vector3}
 data Material = Material {color::Color, specular_power::Double, shininess::Double, reflectivity::Double}
-data Sphere = Sphere {center::Vector3, radius::Double}
-data Triangle = Triangle {v1::Vector3, v2::Vector3, v3::Vector3} 
-data Plane = Plane {normal::Vector3, dist2Plane::Double}
+data Shape = Sphere {center::Vector3, radius::Double} 
+            | Triangle {v1::Vector3, v2::Vector3, v3::Vector3} 
+            | Plane {normal::Vector3, dist2Plane::Double}
 data PointLight = PointLight {difuse::Color, location::Vector3, specular::Color}
 data Camera = Camera {position::Vector3, rotation::Vector3, fov::Word, screen::Screen}
 data Intersection = Intersection {intDistance::Double, intersect::Vector3, normalDir::Vector3}
+data SceneObject = Object {shape::Shape, material::Material}
 
 
 sumVec :: Vector3 -> Double
@@ -57,7 +59,7 @@ crossProduct (ux, uy, uz) (vx, vy, vz) = (uy*vz - uz*vy, uz*vx - ux*vz, ux*vy - 
 class Intersectable a where
     intersects :: a -> Ray -> Maybe (Intersection)
 
-instance Intersectable Sphere where
+instance Intersectable Shape where
     intersects (Sphere center radius) (Ray origin direction) =
         let a = sumVec . square $ direction
             b = 2 * (dotProduct direction $ sub origin center)
@@ -80,8 +82,6 @@ instance Intersectable Sphere where
             else
                 Nothing
 
-
-instance Intersectable Triangle where
     intersects (Triangle v1 v2 v3) (Ray origin direction) =
         let e = 0.000001
             edge1 = sub v2 v1
@@ -110,7 +110,6 @@ instance Intersectable Triangle where
             else
                 Nothing
 
-instance Intersectable Plane where
     intersects (Plane normal distance) (Ray origin direction) = 
         let e = 0.001
             vd = dotProduct normal direction
@@ -126,3 +125,21 @@ instance Intersectable Plane where
                         Nothing
             else
                 Nothing
+
+
+getFirstIntersection :: Ray -> [Maybe (Intersection, SceneObject)] -> Maybe (Intersection, SceneObject)
+getFirstIntersection ray [] = Nothing
+getFirstIntersection ray [o] = o
+getFirstIntersection ray (o:objects) = let getDistance = intDistance . fst in
+                                        foldr (\mi1 mi2 ->
+                                            do
+                                                i1 <- mi1 
+                                                i2 <- mi2 
+                                                if getDistance i1 < getDistance i2 then
+                                                    return i1 
+                                                else 
+                                                    return i2
+                                                ) o objects
+
+getIntersections :: Ray -> [SceneObject] -> [Maybe (Intersection, SceneObject)]
+getIntersections ray objects = map (\o -> (flip intersects ray . shape) o >>= Just . (flip (,) o)) objects
