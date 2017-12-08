@@ -48,13 +48,19 @@ scalarMult v num = simpleOp v ((*) num)
 normalize :: Vector3 -> Vector3
 normalize (x, y, z) = let norm = sqrt . sumVec $  (x^2, y^2, z^2) in (x/norm, y/norm, z/norm) 
 
+dotProduct :: Vector3 -> Vector3 -> Double
+dotProduct = curry $ sumVec . (uncurry mul)
+ 
+crossProduct :: Vector3 -> Vector3 -> Vector3
+crossProduct (ux, uy, uz) (vx, vy, vz) = (uy*vz - uz*vy, uz*vx - ux*vz, ux*vy - uy*vx)
+
 class Intersectable a where
     intersects :: a -> Ray -> Maybe (Intersection)
 
 instance Intersectable Sphere where
     intersects (Sphere center radius) (Ray origin direction) =
         let a = sumVec . square $ direction
-            b = 2 * (sumVec $ mul direction $ sub origin center)
+            b = 2 * (dotProduct direction $ sub origin center)
             c = (sumVec . square) (sub origin center) - radius ^ 2
             discriminant = b ^ 2 - 4 * a * c
             e = 0.001
@@ -68,7 +74,7 @@ instance Intersectable Sphere where
                                 intersect = add origin (scalarMult direction distance)
                                 normalDir = normalize (sub intersect center)
                             in
-                                Just (Intersection distance intersect normalDir)
+                                Just $ Intersection distance intersect normalDir
                         else
                             Nothing
             else
@@ -76,7 +82,47 @@ instance Intersectable Sphere where
 
 
 instance Intersectable Triangle where
-    intersects (Triangle v1 v2 v3) (Ray origin direction) = Nothing
+    intersects (Triangle v1 v2 v3) (Ray origin direction) =
+        let e = 0.000001
+            edge1 = sub v2 v1
+            edge2 = sub v3 v1
+            p = crossProduct direction edge2
+            det = dotProduct edge1 p
+        in
+            if det < e then
+                let t = sub origin v1
+                    u = dotProduct t p
+                in
+                    if u < 0 || u > det then
+                        let q = crossProduct t edge1
+                            v = dotProduct direction q
+                        in
+                            if v < 0 || (u + v) > det then
+                                let dist = (dotProduct edge2 q) / det
+                                    intersect = add origin $ scalarMult direction dist
+                                    normalDir = normalize $ crossProduct v1 v2
+                                in
+                                    Just $ Intersection dist intersect normalDir
+                            else
+                                Nothing
+                    else
+                        Nothing
+            else
+                Nothing
 
 instance Intersectable Plane where
-    intersects (Plane normal distance) (Ray origin direction) = Nothing
+    intersects (Plane normal distance) (Ray origin direction) = 
+        let e = 0.001
+            vd = dotProduct normal direction
+        in
+            if vd < 0 then
+                let v0 = - dotProduct normal origin + distance
+                    dist = v0/vd
+                in
+                    if dist < e then
+                        let intersect = add origin $ scalarMult direction dist in
+                            Just $ Intersection dist intersect normal
+                    else
+                        Nothing
+            else
+                Nothing
