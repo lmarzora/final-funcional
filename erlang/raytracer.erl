@@ -60,6 +60,8 @@
 	 raytrace/5,
 	 run_tests/0,
 	 master/4,
+	 master/2,
+	 master/3,
 	 worker/5,
 	 distributed_worker/5,
 	 standalone/1,
@@ -160,35 +162,35 @@ distribute_work(Master_PID, Width, Height, Scene, Recursion_depth, [Node|Nodes])
 %     pool:pspawn(raytracer, distributed_worker,
 % 		[Master_PID, Pixels, Width, Height, Scene, Recursion_depth]).
 
-% master(Program_PID, Pixel_count) ->
-%     master(Program_PID, Pixel_count, []).
-% master(Program_PID, 0, Pixel_list) ->
-%     io:format("master is done~n", []),
-%     Program_PID ! lists:keysort(1, Pixel_list);
-% % assumes all workers eventually return a good value
-% master(Program_PID, Pixel_count, Pixel_list) ->
-%     receive
-% 	Pixel_tuple ->
-% 	    master(Program_PID, Pixel_count-1, [Pixel_tuple|Pixel_list])
-%     end.
+master(Program_PID, Pixel_count) ->
+    master(Program_PID, Pixel_count, []).
+master(Program_PID, 0, Pixel_list) ->
+    io:format("master is done~n", []),
+    Program_PID ! lists:keysort(1, Pixel_list);
+% assumes all workers eventually return a good value
+master(Program_PID, Pixel_count, Pixel_list) ->
+    receive
+	Pixel_tuple ->
+	    master(Program_PID, Pixel_count-1, [Pixel_tuple|Pixel_list])
+    end.
     
 master(Program_PID, [], Count, Results) ->
 	receive
-        {Pixel_tuple, Worker} when (length(Results) - Count) > 0 ->
-			io:format("~n~p", [Count - length(Results)]),
-		    Worker ! 'end',
-	    	master(Program_PID, [], Count, [Pixel_tuple|Results]);
-        {_Pixel_tuple, Worker} ->
-		    Worker ! 'end',
-		    io:format("master is done~n", []),
-    	    Program_PID ! lists:keysort(1, Results)
-    end;
+		{result, Pixel_tuple} ->
+			io:format("collecting~n", []),
+			master(Program_PID, [], Count, [Pixel_tuple|Results]);
+		{idle, Worker } ->
+			io:format("killing~n", []),
+			Worker ! none,
+			if length(Results) == Count -> Program_PID ! lists:keysort(1, Results);
+				true -> master(Program_PID, [], Count, Results)
+			end
+	end;
 master(Program_PID, [Job|Jobs], Count, Results) ->
 	receive
-	    {Pixel_tuple, Worker} ->
-	    	Worker ! Job,
-	    	master(Program_PID, Jobs, Count, lists:keysort(1, [Pixel_tuple|Results]));
-    	Worker ->
+	    {result, Pixel_tuple} ->
+	    	master(Program_PID, [Job|Jobs], Count, [Pixel_tuple|Results]);
+    	{idle, Worker} ->
 	    	Worker ! Job,
 	    	master(Program_PID, Jobs, Count, Results)
     end.
@@ -210,13 +212,12 @@ worker(Master_PID, Pixel_num, {X, Y}, Scene, Recursion_depth) ->
 %       Pixels).
 
 distributed_worker(Master_PID, Width, Height, Scene, Recursion_depth) ->
-	Master_PID ! self(),
+	Master_PID ! {idle, self()},
 	receive 
 		{X, Y} ->
-			Master_PID ! {{X+Y*Width,
+			Master_PID ! {result, {X+Y*Width,
 				colour_to_pixel(trace_ray_through_pixel({X/Width, Y/Height}, Scene, Recursion_depth))
-				},
-				self()
+				}
 			},
 			distributed_worker(Master_PID, Width, Height, Scene, Recursion_depth);
 		none -> true
@@ -716,6 +717,7 @@ write_pixels_to_ppm(Width, Height, MaxValue, Pixels, Filename) ->
 	    io:format("file opened~n", []),
 	    io:format(IoDevice, "P3~n", []),
 	    io:format(IoDevice, "~p ~p~n", [Width, Height]),
+		io:format(IoDevice, "~p~n", [Width*Height - length(Pixels)]),
 	    io:format(IoDevice, "~p~n", [MaxValue]),
 	    lists:foreach(
 	      fun({_Num, {R, G, B}}) ->
