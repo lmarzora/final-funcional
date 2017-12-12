@@ -143,7 +143,7 @@ raytraced_pixel_list_distributed(Width, Height, Scene, Recursion_depth)
 distribute_work(_MasterPid, _Width, _Height, _Scene, _Recursion_depth, []) ->
 	true;
 distribute_work(Master_PID, Width, Height, Scene, Recursion_depth, [Node|Nodes]) ->
-	spawn(Node, raytracer, distributed_worker, [Master_PID, Width, Height, Recursion_depth]),
+	spawn(Node, raytracer, distributed_worker, [Master_PID, Width, Height, Scene, Recursion_depth]),
 	distribute_work(Master_PID, Width, Height, Scene, Recursion_depth, Nodes).
 
 % distribute_work(Pixels, Pixels_per_worker, Master_PID, Width, Height, Scene,
@@ -174,7 +174,8 @@ distribute_work(Master_PID, Width, Height, Scene, Recursion_depth, [Node|Nodes])
     
 master(Program_PID, [], Count, Results) ->
 	receive
-        {Pixel_tuple, Worker} when length(Results) < Count ->
+        {Pixel_tuple, Worker} when (length(Results) - Count) > 0 ->
+			io:format("~n~p", [Count - length(Results)]),
 		    Worker ! 'end',
 	    	master(Program_PID, [], Count, [Pixel_tuple|Results]);
         {_Pixel_tuple, Worker} ->
@@ -216,7 +217,9 @@ distributed_worker(Master_PID, Width, Height, Scene, Recursion_depth) ->
 				colour_to_pixel(trace_ray_through_pixel({X/Width, Y/Height}, Scene, Recursion_depth))
 				},
 				self()
-			}
+			},
+			distributed_worker(Master_PID, Width, Height, Scene, Recursion_depth);
+		none -> true
 	end.
 
 trace_ray_through_pixel({X, Y}, [Camera|Rest_of_scene], Recursion_depth) ->
