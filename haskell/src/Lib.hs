@@ -3,12 +3,12 @@ module Lib
     ) where
 
 import Data.Maybe
-
+import Vector
 someFunc :: IO ()
 someFunc = putStrLn "someFunc"
 
 type Color = (Double, Double, Double)
-type Vector3 = (Double, Double, Double) 
+
 
 data Screen = Screen {screenWidth::Int, screenHeight::Int}
 data Ray = Ray {origin::Vector3, direction::Vector3}
@@ -20,43 +20,6 @@ data PointLight = PointLight {diffuse::Color, location::Vector3, specular::Color
 data Camera = Camera {position::Vector3, rotation::Vector3, camFov::Int, screen::Screen}
 data Intersection = Intersection {intDistance::Double, intersect::Vector3, normalDir::Vector3}
 data SceneObject = SceneObject {shape::Shape, material::Material} deriving Eq
-
-sumVec :: Vector3 -> Double
-sumVec (x,y,z)= x+y+z
-
-binaryOp :: Vector3 -> Vector3 -> (Double -> Double -> Double) -> Vector3
-binaryOp (x1, y1, z1) (x2, y2, z2) op = (op x1 x2, op y1 y2, op z1 z2)
-
-add :: Vector3 -> Vector3 -> Vector3
-add v1 v2 = binaryOp v1 v2 (+)
-
-sub :: Vector3 -> Vector3 -> Vector3
-sub v1 v2 = binaryOp v1 v2 (-)
-
-mul :: Vector3 -> Vector3 -> Vector3
-mul v1 v2 = binaryOp v1 v2 (*)
-
-square :: Vector3 -> Vector3
-square v = mul v v
-
-simpleOp :: Vector3 -> (Double -> Double) -> Vector3
-simpleOp (x, y, z) f = (f x, f y, f z)
-
-scalarMult :: Vector3 -> Double -> Vector3
-scalarMult v num = simpleOp v ((*) num)
-
-neg :: Vector3 -> Vector3
-neg = flip scalarMult (-1)
-
-normalize :: Vector3 -> Vector3
-normalize (0, 0, 0) = (0, 0, 0)
-normalize (x, y, z) = let norm = sqrt . sumVec $  (x^2, y^2, z^2) in (x/norm, y/norm, z/norm) 
-
-dotProduct :: Vector3 -> Vector3 -> Double
-dotProduct = curry $ sumVec . (uncurry mul)
- 
-crossProduct :: Vector3 -> Vector3 -> Vector3
-crossProduct (ux, uy, uz) (vx, vy, vz) = (uy*vz - uz*vy, uz*vx - ux*vz, ux*vy - uy*vx)
 
 class Intersectable a where
     intersects :: a -> Ray -> Maybe (Intersection)
@@ -128,7 +91,6 @@ instance Intersectable Shape where
             else
                 Nothing
 
-
 getFirstIntersection :: [Maybe (Intersection, SceneObject)] -> Maybe (Intersection, SceneObject)
 getFirstIntersection [] = Nothing
 getFirstIntersection [o] = o
@@ -146,17 +108,6 @@ getFirstIntersection (o:objects) = let getDistance = intDistance . fst in
 getIntersections :: Ray -> [SceneObject] -> [Maybe (Intersection, SceneObject)]
 getIntersections ray objects = map (\o -> (flip intersects ray . shape) o >>= Just . (flip (,) o)) objects
 
--- traceRayThroughPixel:: Double -> Double -> Camera -> [PointLight] -> [SceneObject] -> Int -> Color
--- traceRayThroughPixel x y cam lights objects 0 = (0,0,0)
--- traceRayThroughPixel x y cam lights objects depth =
---     let ray = rayThroughPixel x y cam 
---         intersection = getFirstIntersection $ getIntersections ray objects
---     in
---         case intersection of 
---             Just (intersect, object) -> 
---                 foldr (\ pointLight finalColor -> 
---                     let reflect = scalarMult $ traceRayThroughPixel)
---             Nothing -> (0, 0, 0)
 
 pixelColorFromRay :: Ray -> [PointLight] -> [SceneObject] -> Int -> Color
 pixelColorFromRay ray lights objects depth =
@@ -229,6 +180,9 @@ pointOnScreen x y cam =
 focalLenght :: Double -> Double -> Double
 focalLenght angle dimension = dimension / (tan angle * (pi/180) / 2)
 
+pixels :: Screen -> [(Int, Int)]
+pixels (Screen width height) = [0..height-1] >>= \j -> zip [0..width-1] $ repeat j
 
-bounceVectorOffPlane :: Vector3 -> Vector3 -> Vector3
-bounceVectorOffPlane vector normal = add vector $ scalarMult normal $ 2 * dotProduct normal (neg vector)
+relativePositions :: Screen -> [(Double, Double)]
+relativePositions screen = do (x,y) <- pixels screen
+                              return ((fromIntegral x) / (fromIntegral $ screenWidth screen), (fromIntegral y) / (fromIntegral $ screenHeight screen))
