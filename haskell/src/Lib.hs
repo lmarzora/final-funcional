@@ -1,6 +1,6 @@
 module Lib
     ( Camera(..), PointLight(..), Material(..), SceneObject(..), Screen(..),
-        pixels, rayThroughPixel, relativePositions, pixelColorFromRay
+        pixels, rayThroughPixel, relativePositions, pixelColorFromRay, pointOnScreen
     ) where
 
 import Data.Maybe
@@ -16,7 +16,7 @@ data Screen = Screen {screenWidth::Int, screenHeight::Int}
 data Material = Material {color::Color, specularPower::Integer, shininess::Double, reflectivity::Double} deriving Eq
 
 data PointLight = PointLight {diffuse::Color, location::Vector3, specular::Color}
-data Camera = Camera {position::Vector3, rotation::Vector3, camFov::Int, screen::Screen}
+data Camera = Camera {position::Vector3, rotation::Vector3, camFov::Double, screen::Screen}
 data SceneObject = SceneObject {shape::Shape, material::Material} deriving Eq
 
 data Ray = Ray {origin::Vector3, direction::Vector3} deriving Show
@@ -167,7 +167,7 @@ rayThroughPixel x y cam = Ray (position cam) (normalize (sub (position cam) (poi
 
 pointOnScreen :: Double -> Double -> Camera -> Vector3
 pointOnScreen x y cam = 
-    let fov = fromIntegral $ camFov cam
+    let fov = camFov cam
         width = fromIntegral $ screenWidth $ screen cam
         height = fromIntegral $ screenHeight $ screen cam
         pos = position cam
@@ -179,11 +179,11 @@ pointOnScreen x y cam =
             ]
 
 focalLenght :: Double -> Double -> Double
-focalLenght angle dimension = dimension / (tan angle * (pi/180) / 2)
+focalLenght angle dimension = dimension / (2 * tan angle * (pi/180) / 2)
 
-pixels :: Screen -> [(Int, Int)]
-pixels (Screen width height) = [0..height-1] >>= \j -> zip [0..width-1] $ repeat j
+pixels :: Int -> Int -> [(Int, Int)]
+pixels width height = [0..height-1] >>= \j -> zip [0..width-1] $ repeat j
 
-relativePositions :: Screen -> [(Double, Double)]
-relativePositions screen = do (x,y) <- pixels screen
-                              return ((fromIntegral x) / (fromIntegral $ screenWidth screen), (fromIntegral y) / (fromIntegral $ screenHeight screen))
+relativePositions :: Int -> Int -> [(Double, Double)]
+relativePositions width height = do (x,y) <- pixels width height
+                                    return ((fromIntegral x) / (fromIntegral width), (fromIntegral y) / (fromIntegral height))
