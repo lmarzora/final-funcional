@@ -1,26 +1,42 @@
 module Main where
 
-import System.Environment (getArgs)
-import Control.Distributed.Process
-import Control.Distributed.Process.Node (initRemoteTable, runProcess)
-import Control.Distributed.Process.Backend.SimpleLocalnet
-import Control.Monad (forever, forM_)
-    
+import Lib
+import Geometry
+import Vector
+
 main :: IO ()
 main = do
-  args <- getArgs
+  putStrLn "hola"
 
-  case args of
-    ["master", host, port] -> do
-      backend <- initializeBackend host port initRemoteTable
-      startMaster backend (master backend)
-    ["slave", host, port] -> do
-      backend <- initializeBackend host port initRemoteTable
-      startSlave backend
+scene :: [SceneObject]
+scene = [SceneObject (Sphere (0, 0, 0) 1.0) (Material (1, 0, 0) 20 1 0.1)]
 
-master :: Backend -> [NodeId] -> Process ()
-master backend slaves = do
-  -- Do something interesting with the slaves
-  liftIO . putStrLn $ "Slaves: " ++ show slaves
-  -- Terminate the slaves when the master terminates (this is optional)
-  terminateAllSlaves backend
+camera :: Camera
+camera = Camera (0, 0, -2) (0, 0, 0) 90 (Screen 4 3) 
+
+lights :: [PointLight]
+lights = [PointLight (1, 1, 0.5) (5, -2, 0) (1, 1, 1)]
+-- import System.Environment (getArgs)
+-- import Control.Distributed.Process
+-- import Control.Distributed.Process.Node (initRemoteTable, runProcess)
+-- import Control.Distributed.Process.Backend.SimpleLocalnet
+-- import Control.Monad (forever, forM_)
+    
+-- main :: IO ()
+-- main = do
+--   args <- getArgs
+
+--   case args of
+--     ["master", host, port] -> do
+--       backend <- initializeBackend host port initRemoteTable
+--       startMaster backend (master backend)
+--     ["slave", host, port] -> do
+--       backend <- initializeBackend host port initRemoteTable
+--       startSlave backend
+
+-- master :: Backend -> [NodeId] -> Process ()
+-- master backend slaves = do
+--   -- Do something interesting with the slaves
+--   liftIO . putStrLn $ "Slaves: " ++ show slaves
+--   -- Terminate the slaves when the master terminates (this is optional)
+--   terminateAllSlaves backend
