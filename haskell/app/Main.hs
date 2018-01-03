@@ -5,14 +5,20 @@ import Geometry
 import Vector
 
 main :: IO ()
-main = do
-  putStrLn "hola"
+main = let 
+  positions = relativePositions (screen camera)
+  rays = map (\(x,y) -> rayThroughPixel x y camera) positions
+  colors = map (\r -> pixelColorFromRay r lights scene 1) rays
+  in do
+    print positions
+    print rays
+    print colors 
 
 scene :: [SceneObject]
-scene = [SceneObject (Sphere (0, 0, 0) 1.0) (Material (1, 0, 0) 20 1 0.1)]
+scene = [SceneObject (Sphere (4, 0, 10) 4.0) (Material (1, 0, 0) 20 1 0.1)]
 
 camera :: Camera
-camera = Camera (0, 0, -2) (0, 0, 0) 90 (Screen 4 3) 
+camera = Camera (0, 0, -2) (0, 0, 0) 90 (Screen 1 1) 
 
 lights :: [PointLight]
 lights = [PointLight (1, 1, 0.5) (5, -2, 0) (1, 1, 1)]

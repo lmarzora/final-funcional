@@ -1,5 +1,6 @@
 module Lib
-    ( Camera(..), PointLight(..), Material(..), SceneObject(..), Screen(..)
+    ( Camera(..), PointLight(..), Material(..), SceneObject(..), Screen(..),
+        pixels, rayThroughPixel, relativePositions, pixelColorFromRay
     ) where
 
 import Data.Maybe
@@ -18,7 +19,7 @@ data PointLight = PointLight {diffuse::Color, location::Vector3, specular::Color
 data Camera = Camera {position::Vector3, rotation::Vector3, camFov::Int, screen::Screen}
 data SceneObject = SceneObject {shape::Shape, material::Material} deriving Eq
 
-data Ray = Ray {origin::Vector3, direction::Vector3}
+data Ray = Ray {origin::Vector3, direction::Vector3} deriving Show
 data Intersection = Intersection {intDistance::Double, intersect::Vector3, normalDir::Vector3}
 
 class Intersectable a where
@@ -162,7 +163,7 @@ specularTerm eyeVector lightLocation hitLocation hitNormal power shine col =
         scalarMult col (shine * ((dotProduct addVec hitNormal) ^ power))
 
 rayThroughPixel :: Double -> Double -> Camera -> Ray
-rayThroughPixel x y cam = Ray (position cam) $ pointOnScreen x y cam
+rayThroughPixel x y cam = Ray (position cam) (normalize (sub (position cam) (pointOnScreen x y cam)))
 
 pointOnScreen :: Double -> Double -> Camera -> Vector3
 pointOnScreen x y cam = 
