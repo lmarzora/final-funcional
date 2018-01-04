@@ -172,14 +172,14 @@ pointOnScreen x y cam =
         height = fromIntegral $ screenHeight $ screen cam
         pos = position cam
     in
-        foldr add pos [
+        foldl add pos [
             scalarMult (0, 0, 1) (focalLenght fov width),
             ((x - 0.5) * width, 0, 0),
             (0, (y - 0.5) * height, 0)
             ]
 
 focalLenght :: Double -> Double -> Double
-focalLenght angle dimension = dimension / (2 * tan angle * (pi/180) / 2)
+focalLenght angle dimension = dimension / (2 * tan (angle * (pi/180) / 2))
 
 pixels :: Int -> Int -> [(Int, Int)]
 pixels width height = [0..height-1] >>= \j -> zip [0..width-1] $ repeat j

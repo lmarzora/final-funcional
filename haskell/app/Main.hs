@@ -5,28 +5,28 @@ import Geometry
 import Vector
 
 
--- main :: IO ()
--- main = let
---     positions = relativePositions 4 3
---     points = map (\(x,y) -> pointOnScreen x y camera) positions
---   in
---     print points
-
 main :: IO ()
-main = let 
-  positions = relativePositions 40 30
-  rays = map (\(x,y) -> rayThroughPixel x y camera) positions
-  colors = map (\r -> pixelColorFromRay r lights scene 1) rays
+main = let
+    positions = relativePositions 4 3
+    point = pointOnScreen 0 0 camera
   in do
-    print positions
-    print rays
-    print colors 
+      print point
+
+-- main :: IO ()
+-- main = let 
+--   positions = relativePositions 4 3
+--   rays = map (\(x,y) -> rayThroughPixel x y camera) positions
+--   colors = map (\r -> pixelColorFromRay r lights scene 1) rays
+--   in do
+--     print positions
+--     print rays
+--     print colors 
 
 scene :: [SceneObject]
 scene = [SceneObject (Sphere (4, 0, 10) 4.0) (Material (1, 0, 0) 20 1 0.1)]
 
 camera :: Camera
-camera = Camera (0, 0, -2) (0, 0, 0) (pi/2) (Screen 4 3) 
+camera = Camera (0, 0, 0) (0, 0, 0) 90 (Screen 640 480) 
 
 lights :: [PointLight]
 lights = [PointLight (1, 1, 0.5) (5, -2, 0) (1, 1, 1)]
