@@ -7,10 +7,11 @@ import Vector
 
 main :: IO ()
 main = let
-    positions = relativePositions 4 3
-    point = pointOnScreen 0 0 camera
+    ray = Ray (0,0,0) (normalize (1,1,1))
+    sc = [SceneObject (Sphere (2, 1.1, 1.1) 0.5) (Material (0, 0.5, 1) 20 1 0.1)]
+    li = [PointLight (1, 1, 0.5) (0.1, 0.1, 0.1) (1, 1, 1)]
   in do
-      print point
+      print (pixelColorFromRay ray li sc 1)
 
 -- main :: IO ()
 -- main = let 
@@ -23,13 +24,15 @@ main = let
 --     print colors 
 
 scene :: [SceneObject]
-scene = [SceneObject (Sphere (4, 0, 10) 4.0) (Material (1, 0, 0) 20 1 0.1)]
+scene = [SceneObject (Sphere (4, 0, 10) 4.0) (Material (0, 0.5, 1) 20 1 0.1),
+        SceneObject (Sphere (-5, 3, 9) 4.0) (Material (1, 0.5, 0) 4 0.25 0.5)]
 
 camera :: Camera
-camera = Camera (0, 0, 0) (0, 0, 0) 90 (Screen 640 480) 
+camera = Camera (0, 0, -2) (0, 0, 0) 90 (Screen 4 3) 
 
 lights :: [PointLight]
-lights = [PointLight (1, 1, 0.5) (5, -2, 0) (1, 1, 1)]
+lights = [PointLight (1, 1, 0.5) (5, -2, 0) (1, 1, 1),
+        PointLight (1, 0, 0.5) (-10, 0 ,7) (1, 0, 0.5)]
 -- import System.Environment (getArgs)
 -- import Control.Distributed.Process
 -- import Control.Distributed.Process.Node (initRemoteTable, runProcess)

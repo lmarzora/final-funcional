@@ -1,5 +1,5 @@
 module Lib
-    ( Camera(..), PointLight(..), Material(..), SceneObject(..), Screen(..),
+    ( Camera(..), PointLight(..), Material(..), SceneObject(..), Screen(..), Ray(..),
         pixels, rayThroughPixel, relativePositions, pixelColorFromRay, pointOnScreen
     ) where
 
