@@ -19,9 +19,11 @@ writePPM path width height pixels =
     let stringPixels = map (\(r,g,b) -> show r ++ " " ++ show g ++ " " ++ show b ++ " ") pixels
     in
         do
+        print (length pixels)
         file <- openFile path WriteMode
         hPutStrLn file "P3"
         hPutStrLn file (show width ++ " " ++ show height)
-        hPutStrLn file (show (width * height - (length pixels)))
+        hPutStrLn file (show (width*height - (length pixels)))
         hPutStrLn file "255"
-        forM_ stringPixels (hPutStr file)
+        forM_ pixels (\(r,g,b) -> hPutStr file (show r ++ " " ++ show g ++ " " ++ show b ++ " "))
+        hClose file

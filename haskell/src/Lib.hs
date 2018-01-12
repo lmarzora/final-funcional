@@ -7,20 +7,21 @@ import Data.Maybe
 import Vector
 import Geometry
 
+import Debug.Trace
+
 someFunc :: IO ()
 someFunc = putStrLn "someFunc"
 
 type Color = (Double, Double, Double)
 
 data Screen = Screen {screenWidth::Int, screenHeight::Int}
-data Material = Material {color::Color, specularPower::Integer, shininess::Double, reflectivity::Double} deriving Eq
-
+data Material = Material {color::Color, specularPower::Integer, shininess::Double, reflectivity::Double} deriving (Eq, Show)
 data PointLight = PointLight {diffuse::Color, location::Vector3, specular::Color}
 data Camera = Camera {position::Vector3, rotation::Vector3, camFov::Double, screen::Screen}
-data SceneObject = SceneObject {shape::Shape, material::Material} deriving Eq
+data SceneObject = SceneObject {shape::Shape, material::Material} deriving (Eq, Show)
 
 data Ray = Ray {origin::Vector3, direction::Vector3} deriving Show
-data Intersection = Intersection {intDistance::Double, intersect::Vector3, normalDir::Vector3}
+data Intersection = Intersection {intDistance::Double, intersect::Vector3, normalDir::Vector3} deriving Show
 
 class Intersectable a where
     intersects :: a -> Ray -> Maybe (Intersection)
@@ -163,7 +164,7 @@ specularTerm eyeVector lightLocation hitLocation hitNormal power shine col =
         scalarMult col (shine * ((dotProduct addVec hitNormal) ^ power))
 
 rayThroughPixel :: Double -> Double -> Camera -> Ray
-rayThroughPixel x y cam = Ray (position cam) (normalize (sub (position cam) (pointOnScreen x y cam)))
+rayThroughPixel x y cam = Ray (position cam) (normalize (sub (pointOnScreen x y cam) (position cam)))
 
 pointOnScreen :: Double -> Double -> Camera -> Vector3
 pointOnScreen x y cam = 
