@@ -1,7 +1,13 @@
+{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DeriveDataTypeable #-}
 module Lib
     ( Camera(..), PointLight(..), Material(..), SceneObject(..), Screen(..), Ray(..),
         pixels, rayThroughPixel, relativePositions, pixelColorFromRay, pointOnScreen
     ) where
+
+import GHC.Generics (Generic)
+import Data.Binary
+import Data.Typeable
 
 import Data.Maybe
 import Vector
@@ -9,19 +15,26 @@ import Geometry
 
 import Debug.Trace
 
-someFunc :: IO ()
-someFunc = putStrLn "someFunc"
-
 type Color = (Double, Double, Double)
 
-data Screen = Screen {screenWidth::Int, screenHeight::Int}
-data Material = Material {color::Color, specularPower::Integer, shininess::Double, reflectivity::Double} deriving (Eq, Show)
-data PointLight = PointLight {diffuse::Color, location::Vector3, specular::Color}
-data Camera = Camera {position::Vector3, rotation::Vector3, camFov::Double, screen::Screen}
-data SceneObject = SceneObject {shape::Shape, material::Material} deriving (Eq, Show)
+data Screen = Screen {screenWidth::Int, screenHeight::Int} deriving(Generic, Typeable)
+data Material = Material {color::Color, specularPower::Integer, shininess::Double, reflectivity::Double} deriving (Eq, Show, Generic, Typeable)
+data PointLight = PointLight {diffuse::Color, location::Vector3, specular::Color} deriving (Generic, Typeable)
+data Camera = Camera {position::Vector3, rotation::Vector3, camFov::Double, screen::Screen} deriving (Generic, Typeable)
+data SceneObject = SceneObject {shape::Shape, material::Material} deriving (Eq, Show, Generic, Typeable)
 
-data Ray = Ray {origin::Vector3, direction::Vector3} deriving Show
+data Ray = Ray {origin::Vector3, direction::Vector3} deriving (Show)
 data Intersection = Intersection {intDistance::Double, intersect::Vector3, normalDir::Vector3} deriving Show
+
+instance Binary Screen
+
+instance Binary Material
+
+instance Binary PointLight
+
+instance Binary Camera
+
+instance Binary SceneObject
 
 class Intersectable a where
     intersects :: a -> Ray -> Maybe (Intersection)
