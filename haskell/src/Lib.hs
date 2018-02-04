@@ -2,7 +2,7 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 module Lib
     ( Camera(..), PointLight(..), Material(..), SceneObject(..), Screen(..), Ray(..),
-        pixels, rayThroughPixel, relativePositions, pixelColorFromRay, pointOnScreen
+        pixels, rayThroughPixel, relativePositions, relativePosition, pixelColorFromRay, pointOnScreen
     ) where
 
 import GHC.Generics (Generic)
@@ -201,3 +201,6 @@ pixels width height = [0..height-1] >>= \j -> zip [0..width-1] $ repeat j
 relativePositions :: Int -> Int -> [(Double, Double)]
 relativePositions width height = do (x,y) <- pixels width height
                                     return ((fromIntegral x) / (fromIntegral width), (fromIntegral y) / (fromIntegral height))
+
+relativePosition :: Int -> Int -> Int -> Int -> (Double, Double)
+relativePosition x y width height = ((fromIntegral x) / (fromIntegral width), (fromIntegral y) / (fromIntegral height))
