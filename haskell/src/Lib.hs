@@ -106,25 +106,23 @@ instance Intersectable Shape where
             else
                 Nothing
 
-getFirstIntersection :: [Maybe (Intersection, SceneObject)] -> Maybe (Intersection, SceneObject)
+getFirstIntersection :: [(Intersection, SceneObject)] -> Maybe (Intersection, SceneObject)
 getFirstIntersection [] = Nothing
-getFirstIntersection [o] = o
+getFirstIntersection [o] = Just o
 getFirstIntersection (o:objects) = let getDistance = intDistance . fst in
-                                        foldr (\mi1 mi2 ->
-                                            do
-                                                i1 <- mi1 
-                                                i2 <- mi2 
+                                        Just $ foldr (\i1 i2 ->
                                                 if getDistance i1 < getDistance i2 then
-                                                    return i1 
+                                                    i1 
                                                 else 
-                                                    return i2
+                                                    i2
                                                 ) o objects
 
-getIntersections :: Ray -> [SceneObject] -> [Maybe (Intersection, SceneObject)]
-getIntersections ray objects = map (\o -> (flip intersects ray . shape) o >>= Just . (flip (,) o)) objects
+getIntersections :: Ray -> [SceneObject] -> [(Intersection, SceneObject)]
+getIntersections ray objects = catMaybes $ map (\o -> (flip intersects ray . shape) o >>= Just . (flip (,) o)) objects
 
 
 pixelColorFromRay :: Ray -> [PointLight] -> [SceneObject] -> Int -> Color
+pixelColorFromRay _ _ _ 0 = (0,0,0)
 pixelColorFromRay ray lights objects depth =
     let
         intersection = getFirstIntersection $ getIntersections ray objects

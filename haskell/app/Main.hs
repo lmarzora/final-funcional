@@ -26,15 +26,18 @@ import Control.Monad (forever, forM_)
 --             writeImage "tmp.ppm" 640 480 colors
 
 scene :: [SceneObject]
-scene = [SceneObject (Sphere (0, 0, 20) 10) (Material (0, 0.5, 1) 20 1 0.1)]
-        -- SceneObject (Sphere (5, 2, 1) 1) (Material (1, 0.5, 0) 4 0.25 0.5)]
+scene = [SceneObject (Sphere (-5, 0, 20) 2.5) (Material (0, 0, 1) 20 1 0.1),
+        SceneObject (Sphere (0, 0, 20) 2.5) (Material (0, 1, 0) 20 1 0.1),
+        SceneObject (Sphere (5, 0, 20) 2.5) (Material (1, 0, 0) 20 1 0.1)]
+
+-- scene = 
+--   [SceneObject (Triangle (-10,0,10) (10,0,10) (0,0,10)) (Material (1, 0, 0) 20 1 0.1)]
 
 camera :: Camera
-camera = Camera (0, 0, -2) (0, 0, 0) 90 (Screen 640 480) 
+camera = Camera (0, 0, -2) (0, 0, 0) 90 (Screen 1080 720) 
 
 lights :: [PointLight]
 lights = [PointLight (1, 1, 1) (0, 0, 0) (1, 1, 1)]
---         PointLight (-1, 1, 0) (-10, 0 ,7) (1, 0, 0.5)]
 
 -- main :: IO ()
 -- main = do
@@ -90,23 +93,28 @@ slave (master, workqueue, (scene, lights, cam)) = do
 remotable ['slave]
 
 master :: Backend -> [SceneObject] -> [PointLight] -> Camera -> [NodeId] -> Process()
-master backend scene lights camera slaves = do
-        liftIO . putStrLn $ "MASTER"
-        liftIO . putStrLn $ "Slaves: " ++ show slaves
-        us <- getSelfPid
-        workqueue <- spawnLocal $ do
-                liftIO . putStrLn $ "WORKQUEUE"
-                forM_ (pixels 640 480) $ \(x,y) -> do
-                  them <- expect
-                  liftIO . putStrLn $ show (x,y)
-                  send them (x + y * 640, relativePosition x y 640 480)
-                forever $ do
-                  pid <- expect
-                  send pid ()
-        forM_ slaves $ \nid -> spawn nid ($(mkClosure 'slave) (us, workqueue, (scene, lights, camera)))
-        image <- getImage 640 480
-        liftIO $ writeImage "traced.ppm" 640 480 image
-        terminateAllSlaves backend
+master backend scene lights camera slaves = 
+  let
+    width = (screenWidth . screen) camera
+    height = (screenHeight . screen) camera
+  in
+    do
+          liftIO . putStrLn $ "MASTER"
+          liftIO . putStrLn $ "Slaves: " ++ show slaves
+          us <- getSelfPid
+          workqueue <- spawnLocal $ do
+                  liftIO . putStrLn $ "WORKQUEUE"
+                  forM_ (pixels width height) $ \(x,y) -> do
+                    them <- expect
+                    liftIO . putStrLn $ show (x,y)
+                    send them (x + y * width, relativePosition x y width height)
+                  forever $ do
+                    pid <- expect
+                    send pid ()
+          forM_ slaves $ \nid -> spawn nid ($(mkClosure 'slave) (us, workqueue, (scene, lights, camera)))
+          image <- getImage width height
+          liftIO $ writeImage "traced.ppm" width height image
+          terminateAllSlaves backend
 
 rtable :: RemoteTable
 rtable = Main.__remoteTable initRemoteTable
@@ -116,7 +124,7 @@ main = do
   args <- getArgs
   case args of
     ["master", host, port] -> do
-      backend <- initializeBackend host port rtable 
+      backend <- initializeBackend host port rtable
       startMaster backend $ \slaves -> do
         master backend scene lights camera slaves
     ["slave", host, port] -> do
